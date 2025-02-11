@@ -12,6 +12,7 @@
 
 
 ## Table of Content 
+- [Installation](#installation)
 - [Description of agents](#agents)
   - [User's Environment](#user-environment)
   - [External Agent](#external-agent)
@@ -23,6 +24,11 @@
 - [Reading Results from the Judge](#reading-results-from-the-judge)
 - [Citation](#citation)
   
+---
+
+## Installation 
+- Requirements are in `requirements.txt`
+
 ---
 
 ## Agents  
