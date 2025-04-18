@@ -14,6 +14,13 @@ from trajectory_guidelines_prompts import (
     trajectory_output_format,
 )
 
+from build_language_prompt import (
+    build_language_prompt,
+    language_tag,
+    building_language_input_format,
+    building_language_output_format,
+    previous_template_prompt,
+)
 
 current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
@@ -32,9 +39,21 @@ llm_instance = LLM(llm_name=config["llm_name"], config=config)
 if config["guidelines_type"] == "data":
     guidelines_prompt = data_guidelines_prompt
     output_format = data_output_format
-else:
+    tag = guidelines_tag
+    input_format = input_format
+    previous = previous_guidelines_prompt
+elif config["guidelines_type"] == "input":
+    guidelines_prompt = build_language_prompt
+    output_format = building_language_output_format
+    tag = language_tag
+    input_format = building_language_input_format
+    previous = previous_template_prompt
+elif config["guidelines_type"] == "trajectory":
     guidelines_prompt = trajectory_guidelines_prompt
     output_format = trajectory_output_format
+    tag = guidelines_tag
+    input_format = input_format
+    previous = previous_guidelines_prompt
 
 if config["prev_guidelines_file"] and config["use_prev_guidelines_file"]:
     with open(config["prev_guidelines_file"], "r") as file:
@@ -91,30 +110,35 @@ for i in range(len(benign_files)):
     benign_history = get_history(benign_output)
     malicious_history = get_history(malicious_output)
 
-    input_format_populated = input_format.format(
-        config["user_task"], benign_history, malicious_history
-    )
+    if config["guidelines_type"] == "input":
+        input_format_populated = [input_format.format(benign_history)]
+    else:
+        input_format_populated = [
+            input_format.format(config["user_task"], benign_history, malicious_history)
+        ]
+
     prompt = guidelines_prompt
-    if prev_guidelines:
-        previous_guidelines_prompt_populated = previous_guidelines_prompt.format(
-            prev_guidelines
+
+    for conv in input_format_populated:
+        if prev_guidelines:
+            previous_guidelines_prompt_populated = previous.format(prev_guidelines)
+            prompt_conv = prompt + previous_guidelines_prompt_populated
+        else:
+            prompt_conv = prompt
+
+        prompt_conv = prompt_conv + conv
+
+        prompt_conv = prompt_conv + output_format
+
+        prompt_conv = [{"role": "system", "content": prompt_conv}]
+
+        guidelines_output_str = llm_instance.call_model(prompt_conv)
+        print(guidelines_output_str)
+
+        prev_guidelines = (
+            guidelines_output_str.split(f"<{tag}>")[-1].split(f"</{tag}>")[0].strip()
         )
-        prompt += previous_guidelines_prompt_populated
+        print("========")
 
-    prompt += output_format
-
-    prompt += input_format_populated
-
-    prompt = [{"role": "system", "content": prompt}]
-
-    guidelines_output_str = llm_instance.call_model(prompt)
-    print(guidelines_output_str)
-
-    prev_guidelines = (
-        guidelines_output_str.split(f"<{guidelines_tag}>")[-1]
-        .split(f"</{guidelines_tag}>")[0]
-        .strip()
-    )
-    print("========")
     with open(f"{config['guidelines_type']}_guidelines.txt", "w") as f:
         f.write(prev_guidelines)
