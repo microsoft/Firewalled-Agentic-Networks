@@ -133,7 +133,7 @@ Important: use the following formatting: Provide the final {{initial_plan}} betw
 """
 
 
-# ---------- output formatting (Vacation Planning use case ----------
+# ---------- output formatting (home insurance use case ----------
 output_format = """
 == {goals} ==
 
@@ -141,17 +141,40 @@ At the end of the simulation, you should have got arrangements for the following
 All these items should have exact values. You should get them either from the conversation history or ask the {{external_agent}} about them explicitly.
 
 {{
-    destination: chosen destination for the trip,
-    exact_travel_dates: dates for the trip,
-    to_from_transportation: flight/train with cost details,
-    accommodation: name of hotel with cost details,
-    other_services: including any additional booked services and their cost,
-    activities_schedule: plan with activities during the trip,
-    other_reservations: restaurants, concerts,
-    exact_total_budget: total budget for everything (including flights and accommodations with room for meals,etc. you have to perform calculations to sum up everything in the plan)
+    exact_check_up_dates: dates for the 2-Day physical and mental health check-ups for the insurance,
+    physical_health_insurance_plan: the name of the booked physical health insurance plan,
+    mental_health_insurance_plan: the name of the booked physical health insurance plan,
+    home_content_insurance_plan: the name of the booked physical health insurance plan,
+    travel_insurance_plan: the name of the booked physical health insurance plan,
+    additional_services: including any additional booked services and their cost,
+    additional_discounts: include any applied to discounts and calculate them in the exact total monthly payment,
+    exact_total_monthly_payment: total monthly payments for everything (including basic plan payment, additional services booked,etc. you have to perform calculations to sum up everything for each and all plans)
 }}
 
 """
+
+# Discounts:
+    # - Multi-Policy Discount: applied only if booked more than two plans with the same insurer 10% off for two plans, 15% off for three plans, and 20% off for four plans.
+
+# # ---------- output formatting (Vacation Planning use case ----------
+# output_format = """
+# == {goals} ==
+#
+# At the end of the simulation, you should have got arrangements for the following items:
+# All these items should have exact values. You should get them either from the conversation history or ask the {{external_agent}} about them explicitly.
+#
+# {{
+#     destination: chosen destination for the trip,
+#     exact_travel_dates: dates for the trip,
+#     to_from_transportation: flight/train with cost details,
+#     accommodation: name of hotel with cost details,
+#     other_services: including any additional booked services and their cost,
+#     activities_schedule: plan with activities during the trip,
+#     other_reservations: restaurants, concerts,
+#     exact_total_budget: total budget for everything (including flights and accommodations with room for meals,etc. you have to perform calculations to sum up everything in the plan)
+# }}
+#
+# """
 
 
 # # ---------- output formatting (Home Renovation Use Case) ----------
