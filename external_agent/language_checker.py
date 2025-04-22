@@ -208,15 +208,17 @@ def compare_values(key_value_pair_response, predefined_language_flattened):
         key_response = remove_indices(key_response)
         language_supported_value = predefined_language_flattened[key_response]
 
+        new_list_responses = []
+
         # check multiple choices
         if isinstance(language_supported_value, list):
             if isinstance(value_response, list):
                 for response in value_response:
-                    if not response in language_supported_value:
-                        return False
+                    if response in language_supported_value:
+                        new_list_responses.append(response)
             else:
                 if not value_response in language_supported_value:
-                    return False
+                    return False, new_list_responses
 
         # check other types
         else:
@@ -231,7 +233,7 @@ def compare_values(key_value_pair_response, predefined_language_flattened):
                 value_response = [i.strip() for i in value_response.split(" ")]
                 ## if it is a text pattern it should be of the same length
                 if not len(value_response) == len(supported_parts):
-                    return False
+                    return False, new_list_responses
             else:
                 value_response = [value_response]
 
@@ -240,12 +242,12 @@ def compare_values(key_value_pair_response, predefined_language_flattened):
                     if not check_compliance_to_type(
                         value_response[i], supported_parts[i].strip()
                     ):
-                        return False
+                        return False, new_list_responses
                 elif not value_response[i].strip() == supported_parts[i].strip():
-                    return False
-        return True
+                    return False, new_list_responses
+        return True, new_list_responses
     except:
-        return False
+        return False, []
 
 
 def check_compliance(predefined_language: str, response: str):
@@ -264,7 +266,12 @@ def check_compliance(predefined_language: str, response: str):
 
     correct_value_items = []
     for key_value_response in correct_keys_items:
-        if compare_values(key_value_response, predefined_language_flattened):
+        complies, new_list = compare_values(
+            key_value_response, predefined_language_flattened
+        )
+        if new_list:
+            correct_value_items.append((key_value_response[0], new_list))
+        elif complies:
             correct_value_items.append(key_value_response)
 
     # Combine keys with indices into unified keys
