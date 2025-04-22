@@ -108,8 +108,16 @@ class External:
         If the predefined input firewall is implemented, names are replaced with IDs
         This replaces the IDs back to names when the AI assistant is again addressing the external agent or producing the final output.
         """
+
+        def sort_key(item):
+            # Extract the number from the option string
+            number = int(item[0].split("option")[1])
+            return number
+
         for key_ in self.names_lookup:
-            for name_, id_ in self.names_lookup[key_].items():
+            names_ids = [(id_, name_) for name_, id_ in self.names_lookup[key_].items()]
+            sorted_names_ids = sorted(names_ids, key=sort_key, reverse=True)
+            for id_, name_ in sorted_names_ids:
                 response = response.replace(id_, name_)
         return response
 
