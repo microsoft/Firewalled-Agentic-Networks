@@ -46,6 +46,15 @@ if config["apply_trajectory_firewall"] and config["trajectory_rules"]:
 else:
     integrity_rules = ""
 
+if config["apply_input_firewall"] and config["apply_input_firewall"]:
+    """
+    this is the predefined input firewall
+    """
+    with open(config["fixed_input_firewall_path"], "r") as file:
+        fixed_input_firewall = file.read()
+else:
+    fixed_input_firewall = ""
+
 llm_instance = LLM(llm_name=config["llm_name"], config=config)
 simulator = UserEnvironmentAgent(
     llm_instance=llm_instance,
@@ -61,6 +70,8 @@ assistant = Assistant(
     baseline_mode=config["baseline_mode"],
     guidelines=integrity_rules,
     use_guidelines=config["apply_trajectory_firewall"],
+    predefined_input_firewall_flag=config["apply_input_firewall"]
+    and (True if fixed_input_firewall != "" else False),
 )
 
 if config["external_options"] != "":
@@ -78,6 +89,7 @@ if config["external_options"] != "":
         ),
         apply_input_firewall=config["apply_input_firewall"],
         input_guidelines_prompt=input_guidelines_prompt,
+        predefined_language=fixed_input_firewall,
     )
 
 # generate initial plan
@@ -111,6 +123,13 @@ while not task_done:
             )
 
     response, response_str = assistant.generate_turn(previous_turn)
+    if config["apply_input_firewall"] and fixed_input_firewall != "":
+        """
+        if we have predefined input IDs replace back the IDs with their corresponding names
+        """
+        response.answer = external.update_ids_to_names(response.answer)
+        print("==== Assistant response fter replacing IDs with names again ")
+        print(response.answer)
 
     # check if is done
     if (

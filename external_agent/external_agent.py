@@ -3,12 +3,14 @@ import sys
 from model import LLM
 from external_agent.external_utils import extract_output, format_history
 from external_agent.external_prompts_benign import (
+    initial_explanation_benign,
     get_external_aggregated_prompt_benign,
     benign_mode_easy,
     benign_mode_hard,
 )
 
 from external_agent.external_prompts_adv import (
+    initial_explanation_adv,
     get_external_aggregated_prompt_adv,
     adv_mode_upselling,
     adv_mode_other_attacks,
@@ -22,12 +24,12 @@ from external_agent.external_prompts_general import (
     package_options,
 )
 
-# from external_agent.external_prompts_adv import (
-#     external_aggregated_prompt_adv,
-#     adv_mode_upselling,
-#     adv_mode_other_attacks,
-#     adv_mode_opposite,
-# )
+from external_agent.apply_language import (
+    predefined_input_firewall_intro,
+    predefined_input_firewall_turn,
+)
+
+from external_agent.language_checker import check_compliance, process_final_dict
 
 mode = {
     "benign_easy": benign_mode_easy,
@@ -49,6 +51,7 @@ class External:
         external_agent_additional_info: str = "",
         apply_input_firewall: bool = False,
         input_guidelines_prompt: str = "",
+        predefined_language: str = "",
     ) -> None:
         print(external_agent_mode)
         self.external_agent_role = external_agent_role
@@ -65,14 +68,136 @@ class External:
             "benign": get_external_aggregated_prompt_benign(package_options),
             "adv": get_external_aggregated_prompt_adv(package_options),
         }
+        initial_prompt = {
+            "benign": initial_explanation_benign,
+            "adv": initial_explanation_adv,
+        }
 
         self.aggregated_prompt = aggregated_prompts[
             "benign" if "benign" in external_agent_mode else "adv"
         ]
+        self.initial_prompt = initial_prompt[
+            "benign" if "benign" in external_agent_mode else "adv"
+        ]
 
         self.history = []
-        self.input_guidelines_prompt = input_guidelines_prompt
+
         self.apply_input_firewall = apply_input_firewall
+        self.input_guidelines_prompt = input_guidelines_prompt
+
+        self.predefined_language = predefined_language
+        self.predefined_input_firewall_intro = predefined_input_firewall_intro
+
+        self.names_lookup = {}
+
+    def get_previous_names(self) -> str:
+        """
+        If the predefined input firewall is implemented, names are replaced with IDs.
+        In order to maintain consistency across the conversation, give the previous names to the firewall in order to be the same.
+        For example, if "Paris" was used before, it should be used exactly again, not "Paris, France"
+        """
+        previous_names = ""
+        for key_ in self.names_lookup:
+            previous_names += f"=== List of names under category: {key_}: ==="
+            for name_, id_ in self.names_lookup[key_].items():
+                previous_names += f" {name_}."
+        return previous_names
+
+    def update_ids_to_names(self, response: str) -> str:
+        """
+        If the predefined input firewall is implemented, names are replaced with IDs
+        This replaces the IDs back to names when the AI assistant is again addressing the external agent or producing the final output.
+        """
+        for key_ in self.names_lookup:
+            for name_, id_ in self.names_lookup[key_].items():
+                response = response.replace(id_, name_)
+        return response
+
+    def dynamic_input_firewall(self, turn_response: Response) -> str:
+        """
+        This is v1 of the firewall that didn't use a fixed template
+        """
+        assert self.input_guidelines_prompt != ""
+        external_answer = (
+            f"This is the output from the {{external agent}}: {turn_response.answer}"
+        )
+
+        input_firewall_prompts_turn = [
+            {"role": "system", "content": self.input_guidelines_prompt}
+        ]
+
+        input_firewall_prompts_turn += [{"role": "system", "content": external_answer}]
+
+        firewall_output_str = self.llm_instance.call_model(input_firewall_prompts_turn)
+
+        print("========= After Input Firewall =========")
+        print(firewall_output_str)
+
+        return firewall_output_str
+
+    def predefined_input_firewall(self, turn_response: Response) -> str:
+        """
+        This is v2 of the firewall that uses a fixed template
+        """
+        ## include previous names
+        previous_names = self.get_previous_names()
+        global predefined_input_firewall_turn
+
+        ## populate the turn prompt with 1) the language, 2) response, 3) and previous names
+        predefined_input_firewall_current_turn = predefined_input_firewall_turn.format(
+            self.predefined_language, turn_response.answer, previous_names
+        )
+
+        ## the initial prompt explaining the setup
+        input_firewall_prompts_turn = [
+            {"role": "system", "content": self.initial_prompt}
+        ]
+
+        ## the prompt of how to perform the transformation
+        input_firewall_prompts_turn += [
+            {"role": "system", "content": self.predefined_input_firewall_intro}
+        ]
+
+        ## the turn prompt
+        input_firewall_prompts_turn += [
+            {"role": "system", "content": predefined_input_firewall_current_turn}
+        ]
+
+        firewall_output_str = ""
+        for i in range(0, give_up):
+            firewall_output_str = self.llm_instance.call_model(
+                input_firewall_prompts_turn
+            )
+            print("========= After Input Firewall =========")
+            print(firewall_output_str)
+
+            ## final output should contain the tag and should be in dict json format
+            if not "FINAL ANSWER:" in firewall_output_str:
+                firewall_output_str == ""
+                continue
+            else:
+                try:
+                    ## this will check whether each item complies with the language in terms of keys and values
+                    filtered_json = check_compliance(
+                        self.predefined_language,
+                        firewall_output_str.split("FINAL ANSWER:")[-1],
+                    )
+                    if isinstance(filtered_json, dict):
+                        ## this will remove names and replace them with IDs
+                        filtered_json, self.names_lookup = process_final_dict(
+                            filtered_json, self.names_lookup
+                        )
+                        print(self.names_lookup)
+                        firewall_output_str = str(filtered_json)
+
+                except:
+                    firewall_output_str = ""
+
+            if firewall_output_str:
+                print("========= After Input Firewall Checker =========")
+                print(firewall_output_str)
+                break
+        return firewall_output_str
 
     def update_history(self, item: list, item_type: str) -> None:
         """
@@ -155,30 +280,26 @@ class External:
             print(f"Failed to get correct format after {give_up} trials. Exiting.")
             sys.exit()
 
-        if self.apply_input_firewall:
-            assert self.input_guidelines_prompt != ""
-            external_answer = (
-                f"This is the output from the {{external agent}}: {turn_output_str}"
-            )
-
-            input_firewall_prompts_turn = [
-                {"role": "system", "content": self.input_guidelines_prompt}
-            ]
-
-            input_firewall_prompts_turn += [
-                {"role": "system", "content": external_answer}
-            ]
-
-            firewall_output_str = self.llm_instance.call_model(
-                input_firewall_prompts_turn
-            )
-
-            print("========= After Input Firewall =========")
-            print(firewall_output_str)
+        if self.apply_input_firewall and self.predefined_language == "":
+            ## Input firewall without pregenerated options
+            firewall_output_str = self.dynamic_input_firewall(turn_response)
 
             firewall_turn_response = Response(
                 type="external_agent_return", answer=firewall_output_str
             )
             return firewall_turn_response, firewall_output_str
+
+        elif self.apply_input_firewall and self.predefined_language != "":
+            ## Input firewall with pregenerated options
+            firewall_output_str = self.predefined_input_firewall(turn_response)
+            if firewall_output_str:
+                firewall_turn_response = Response(
+                    type="external_agent_return",
+                    answer=firewall_output_str.split("FINAL ANSWER:")[-1],
+                )
+                return firewall_turn_response, firewall_output_str
+            else:
+                print(f"Failed to get correct format after {give_up} trials. Exiting.")
+                sys.exit()
 
         return turn_response, turn_output_str

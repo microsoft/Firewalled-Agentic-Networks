@@ -19,6 +19,7 @@ from assistant.assistant_prompts import (
     thought_summary_delimiter,
     scratch_pad_delimiter,
     initial_plan_delimiter,
+    input_firewall_notification,
     get_aggregated_prompts_for_turn_firewall,
 )
 
@@ -34,6 +35,7 @@ class Assistant:
         baseline_mode: bool = False,
         guidelines: str = "",
         use_guidelines: bool = False,
+        predefined_input_firewall_flag: bool = False,
     ) -> None:
         self.user_task = user_task
         self.external_agent_role = external_agent_role
@@ -50,6 +52,16 @@ class Assistant:
             self.aggregated_prompts_for_turn = aggregated_prompts_for_turn
 
         self.guidelines, self.use_guidelines = guidelines, use_guidelines
+
+        if predefined_input_firewall_flag:
+            """
+            this is to tell the assistant that it should expect names to be IDs and that it should follow the same format
+            """
+            self.input_firewall_notification_prompt = input_firewall_notification
+        else:
+            self.input_firewall_notification_prompt = ""
+
+        self.aggregated_prompts_for_turn += self.input_firewall_notification_prompt
 
     def update_history(self, item: list, item_type: str) -> None:
         """
@@ -215,16 +227,15 @@ class Assistant:
             last_output_observation = turn_response.answer
             entity = turn_response.type.split("to_")[1]
 
-            aggregated_prompts_for_turn_firewall = (
-                get_aggregated_prompts_for_turn_firewall(
-                    user_task=self.user_task,
-                    external_agent_role=self.external_agent_role,
-                    history=current_history,
-                    last_output_thought_summary=assistant_log_summary,
-                    last_output_thought_observation=last_output_observation,
-                    last_output_address=entity,
-                    guidelines=self.guidelines,
-                )
+            aggregated_prompts_for_turn_firewall = get_aggregated_prompts_for_turn_firewall(
+                user_task=self.user_task,
+                external_agent_role=self.external_agent_role,
+                history=current_history,
+                last_output_thought_summary=assistant_log_summary,
+                last_output_thought_observation=last_output_observation,
+                last_output_address=entity,
+                guidelines=self.guidelines,
+                input_firewall_notification_prompt=self.input_firewall_notification_prompt,
             )
 
             local_prompts = [
