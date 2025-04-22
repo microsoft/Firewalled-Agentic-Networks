@@ -45,13 +45,10 @@ The {{Language}}: {}
 The {{current_input}}: {}
 These are the previous used {{names}} that you must be consistent with (will be empty if no names were used before): {} 
 
-First, provide a step-by-step analysis of what {{keys}} and {{values}} you should select from the {{Language}} to very accurately reflect the {{current_input}} Then generate the final answer. You must generate the response in a JSON format according to the {{Language}}. Make sure the "Types" closely follow the corresponding Python types. Make sure no requests have {{values}} of "False". Use the following format:
+First, provide a step-by-step analysis of what {{keys}} and {{values}} you should select from the {{Language}} to very accurately reflect the {{current_input}} Then generate the final answer. You must generate the response in a JSON format according to the {{Language}}. Make sure the "Types" closely follow the corresponding Python types. Make sure no requests have {{values}} of "False". Make sure you maintain consistency with previous {{names}}. Use the following format:
 
 ANALYSIS: 
 
 FINAL ANSWER: 
 
 """
-
-
-# - In order to maintain consistency in these identifiers, the {{AI assistant}} will maintain a programmable look-up table of {{"destination 1": "Paris"}}. You have to always make sure you use the same names (Type:str fields) (for example, names of hotels or destinations corresponding to the same option should be exactly the same throughout the conversation. You will be given a list of the names you have used in order to make sure you are consistent.
