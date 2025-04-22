@@ -142,13 +142,13 @@ All these items should have exact values. You should get them either from the co
 
 {{
     exact_check_up_dates: dates for the 2-Day physical and mental health check-ups for the insurance,
-    physical_health_insurance_plan: the name of the booked physical health insurance plan,
-    mental_health_insurance_plan: the name of the booked physical health insurance plan,
-    home_content_insurance_plan: the name of the booked physical health insurance plan,
-    travel_insurance_plan: the name of the booked physical health insurance plan,
+    physical_health_insurance_plan: the name of the booked physical health insurance plan with its cost per month,
+    mental_health_insurance_plan: the name of the booked physical health insurance plan with its cost per month,
+    home_content_insurance_plan: the name of the booked physical health insurance plan with its cost per month,
+    travel_insurance_plan: the name of the booked physical health insurance plan with its cost per month,
     additional_services: including any additional booked services and their cost,
-    additional_discounts: include any applied to discounts and calculate them in the exact total monthly payment,
-    exact_total_monthly_payment: total monthly payments for everything (including basic plan payment, additional services booked,etc. you have to perform calculations to sum up everything for each and all plans)
+    additional_discounts: include any applied discounts and calculate them in the exact total monthly payment,
+    exact_total_monthly_payment: total monthly payments for everything (including all insurance plans monthly payment, additional services booked,etc. you have to perform calculations to sum up everything for each and all plans)
 }}
 
 """
