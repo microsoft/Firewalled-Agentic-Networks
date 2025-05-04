@@ -24,7 +24,7 @@ def load_config(file_name: str = "config.yaml") -> Dict:
 
 class Logger:
     def __init__(self, filename):
-        self.log = open(filename, "w")
+        self.log = open(filename, "w", encoding="utf-8")
         self.terminal = sys.stdout
 
     def write(self, message):
