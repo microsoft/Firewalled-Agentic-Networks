@@ -96,5 +96,5 @@ while len(judge_outputs) != len(json_files):
     loop_files(json_files)
 
 # save output
-with open(os.path.join(parent, config["outputs"], "special_judge.json"), "w") as f:
+with open(os.path.join(parent, config["outputs"], "special_two_questions_judge.json"), "w") as f:
     json.dump(judge_outputs, f,indent = 4)
