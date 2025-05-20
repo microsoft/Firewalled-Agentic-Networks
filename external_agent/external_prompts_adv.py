@@ -112,17 +112,17 @@ Based on the previous analysis. If you are not terminating, you have to take ste
 Is your answer complete according to the {{answer_complete}} rule? 
 """
 
-def get_external_aggregated_prompt_adv(
-        package_options):
+
+def get_external_aggregated_prompt_adv(package_options):
     external_aggregated_prompt_adv = (
-            initial_explanation_adv
-            + environment_description
-            + simulate_accurate_output_general
-            + simulate_accurate_output_adv
-            + package_options
-            + history_description
-            + scratchpad_adv
-            + agent_addressing_prompt
+        initial_explanation_adv
+        + environment_description
+        + simulate_accurate_output_general
+        + simulate_accurate_output_adv
+        + package_options
+        + history_description
+        + scratchpad_adv
+        + agent_addressing_prompt
     )
 
     return external_aggregated_prompt_adv
